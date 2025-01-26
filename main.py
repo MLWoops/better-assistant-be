@@ -29,6 +29,11 @@ async def health_check():
 
 @app.get("/projects")
 async def fetch_projects():
+    """
+    프로젝트 목록 호출을 위한 API
+    Returns:
+        Response: 프로젝트 목록
+    """
     pass
 
 @app.get("/project")
