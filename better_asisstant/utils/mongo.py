@@ -12,7 +12,7 @@ from better_asisstant.exceptions import (
 )
 
 
-class mongo_clinet:
+class mongo_client:
     def __init__(self):
         mongo_host = os.getenv("MONGO_HOST")
         mongo_port = os.getenv("MONGO_PORT")
