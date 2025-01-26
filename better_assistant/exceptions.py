@@ -1,7 +1,7 @@
 class DataNotFoundException(Exception):
     pass
 
-class NoDataException(Exception):
+class NoFilterException(Exception):
     pass
 
 class CollectionNotDefinedException(Exception):
