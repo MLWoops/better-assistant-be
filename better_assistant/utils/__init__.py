@@ -1,1 +1,1 @@
-from mongo import mongo_client
+from better_assistant.utils.mongo import mongo_client
