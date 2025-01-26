@@ -114,7 +114,7 @@ graph TD
 ### Sequence Diagram
 
 #### Project
-```Mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant API as FastAPI Backend
@@ -167,7 +167,7 @@ sequenceDiagram
 ```
 
 #### Prompt
-```Mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant API as FastAPI Backend
@@ -193,7 +193,7 @@ sequenceDiagram
 ```
 
 #### Chat
-```Mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant API as FastAPI Backend
@@ -239,7 +239,7 @@ sequenceDiagram
 ```
 
 #### Generate
-```Mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant API as FastAPI Backend
