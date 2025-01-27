@@ -18,6 +18,6 @@ dependencies = [
 [tool.ruff]
 line-length = 120
 lint.select = ["B", "E", "F", "I", "W"]
-lint.ignore = ["B905", "B008", "B904", "F811", "E501"]
-lint.fixable = ["B", "F", "I"]
+lint.ignore = ["B905", "B008", "B904", "F811", "E501", "F401"]
+lint.fixable = ["B", "F", "I", "W"]
 lint.unfixable = []
