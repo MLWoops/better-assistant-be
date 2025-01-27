@@ -13,8 +13,5 @@ class DataNotDeletedException(Exception):
 class DataNotCreatedException(Exception):
     pass
 
-class DataNotReadException(Exception):
-    pass
-
 class DataNotUpdatedException(Exception):
     pass
