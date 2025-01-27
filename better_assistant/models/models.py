@@ -1,30 +1,31 @@
 from datetime import datetime
 
-from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from better_assistant.models import MongoDocument
+from better_assistant.utils import get_kst_timezone
 
-class Project(BaseModel):
-    project_id: str = Field(..., description="프로젝트 ID", default=str(ObjectId()))
+KST_TIMEZONE = get_kst_timezone()
+
+class Project(MongoDocument):
     project_title: str = Field(..., description="프로젝트 제목")
-    created_at: datetime = Field(..., description="프로젝트 생성 시각", default=datetime.now())
-    updated_at: datetime = Field(..., description="프로젝트 수정 시각", default=datetime.now())
+    created_at: datetime = Field(description="프로젝트 생성 시각", default=datetime.now(KST_TIMEZONE))
+    updated_at: datetime = Field(description="프로젝트 수정 시각", default=datetime.now(KST_TIMEZONE))
 
-class Prompt(BaseModel):
-    prompt_id: str = Field(..., description="프롬프트 ID", default=str(ObjectId()))
+class Prompt(MongoDocument):
     project_id: str = Field(..., description="프로젝트 ID")
     prompt_version: str = Field(..., description="프롬프트 버전")
     prompt_content: str = Field(..., description="프롬프트 내용")
-    created_at: datetime = Field(..., description="프롬프트 생성 시각", default=datetime.now())
-    updated_at: datetime = Field(..., description="프롬프트 수정 시각", default=datetime.now())
+    created_at: datetime = Field(description="프롬프트 생성 시각", default=datetime.now(KST_TIMEZONE))
+    updated_at: datetime = Field(description="프롬프트 수정 시각", default=datetime.now(KST_TIMEZONE))
 
-class Msg(BaseModel):
+class Msg(MongoDocument):
     msg: str = Field(..., description="메시지")
     role: str = Field(..., description="역할")
 
-class Dialog(BaseModel):
+class Dialog(MongoDocument):
     project_id: str = Field(..., description="프로젝트 ID")
-    dialog_id: str = Field(..., description="대화 ID", default=str(ObjectId()))
+    dialog_title: str = Field(..., description="대화 제목")
     dialog_content: list[Msg] = Field(..., description="대화 내용")
-    created_at: datetime = Field(..., description="대화 생성 시각", default=datetime.now())
-    updated_at: datetime = Field(..., description="대화 수정 시각", default=datetime.now())
+    created_at: datetime = Field(description="대화 생성 시각", default=datetime.now(KST_TIMEZONE))
+    updated_at: datetime = Field(description="대화 수정 시각", default=datetime.now(KST_TIMEZONE))
