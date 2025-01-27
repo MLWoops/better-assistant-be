@@ -1,19 +1,20 @@
 import os
 
+from bson import objectid
 from pymongo import MongoClient
 
 from better_assistant.exceptions import (
     CollectionNotDefinedException,
     DataNotCreatedException,
     DataNotDeletedException,
-    DataNotReadException,
-    DataNotUpdatedException,
     DataNotFoundException,
+    DataNotUpdatedException,
     NoFilterException,
 )
+from better_assistant.models import MongoDocument, MongoFilter
 
 
-class mongo_client:
+class MongoClientWrapper:
     def __init__(self):
         mongo_host = os.getenv("MONGO_HOST")
         mongo_port = os.getenv("MONGO_PORT")
@@ -22,14 +23,21 @@ class mongo_client:
         self.client = MongoClient(host=mongo_host, port=int(mongo_port))
         self.db = self.client.get_database(mongo_db)
 
-    def insert(self, data, collection=None):
+    def __create_index__(self):
+        self.db.get_collection("projects").create_index("project_title", unique=True)
+        self.db.get_collection("prompts").create_index("prompt_version", unique=True)
+        self.db.get_collection("dialogs").create_index("dialog_title", unique=True)
+
+    def insert(self, document: MongoDocument, collection: str=None) -> objectid:
 
         if not collection:
             raise CollectionNotDefinedException("Collection is required")
-        if not data:
+        if not document:
             raise NoFilterException("Data is required")
         collection = self.db.get_collection(collection)
-        result = collection.insert_one(data)
+
+        document = document.to_dict()
+        result = collection.insert_one(document)
 
         if result.acknowledged:
             return result.inserted_id
@@ -37,37 +45,21 @@ class mongo_client:
             raise DataNotCreatedException("Data not created")
 
 
-    def find(self, filter, collection=None):
+    def find(self, filter: MongoFilter, collection: str=None) -> MongoDocument:
 
         if not collection:
             raise CollectionNotDefinedException("Collection is required")
         if not filter:
             raise NoFilterException("Data is required")
-        collection = self.db.get_collection(collection)
-        result = collection.find_one(filter)
-
-        if result:
-            return result
-        else:
-            raise DataNotReadException("Data not found")
-        
-    def find_all(self, filter, collection=None):
-        
-        if not collection:
-            raise CollectionNotDefinedException("Collection is required")
-        
-        if not filter:
-            raise NoFilterException("Data is required")
-        
         collection = self.db.get_collection(collection)
         result = collection.find(filter)
 
         if result:
             return result
         else:
-            raise DataNotReadException("Data not found")
+            raise DataNotFoundException("Data not found")
 
-    def update(self, filter, update, collection=None):
+    def update(self, filter: MongoFilter, update, collection: str=None) -> bool:
 
         if not collection:
             raise CollectionNotDefinedException("Collection is required")
@@ -81,11 +73,11 @@ class mongo_client:
         if result.acknowledged:
             if result.modified_count > 0:
                 return True
-            return DataNotFoundException("No data to update")
+            raise DataNotFoundException("No data to update")
         else:
             raise DataNotUpdatedException("Update failed")
 
-    def delete(self, filter, collection=None):
+    def delete(self, filter: MongoFilter, collection: str=None) -> bool:
 
         if not collection:
             raise CollectionNotDefinedException("Collection is required")
