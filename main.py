@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 
 from bson import ObjectId
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from loguru import logger
@@ -14,18 +14,21 @@ from better_assistant.exceptions import (
     NoDataException,
     NoFilterException,
 )
-from better_assistant.models import Project
-from better_assistant.services import ProjectService
+from better_assistant.models import Project, Prompt
+from better_assistant.services import ProjectService, PromptService
 
 project_service: ProjectService = None
+prompt_service: PromptService = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     서버 시작 시 초기화 작업을 위한 함수
     """
-    global project_service
+    global project_service, prompt_service
     project_service = ProjectService()
+    prompt_service = PromptService()
+
     logger.add("app.log", rotation="500 MB", format="{time} {level} {message}", level="DEBUG", enqueue=True)
 
     # await project_service.mongo_client.__create_index__()
@@ -163,38 +166,71 @@ async def delete_project(projectId: str):
     except DataNotFoundException:
         return Response(status_code=404, content="No data found to delete.")
 
-@app.get("/prompts")
-async def create_prompt():
+@app.get("/prompts/{projectId}")
+async def create_prompt(projectId: str):
     """
     프롬프트 목록 호출 API
 
     Returns:
         Response: 프롬프트 목록
     """
-    # TODO: Implement prompt creation logic
-    return JSONResponse(content={"prompt_id": "new_prompt_id"})
-
+    try:
+        result = await prompt_service.get_prompts(project_id=projectId)
+        return JSONResponse(content={"prompts": result})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found.")
+    
 @app.post("/prompt")
-async def create_prompt():
+async def create_prompt(prompt: Prompt):
     """
     프롬프트 생성 API
 
     Returns:
         Response: 생성된 프롬프트 정보
     """
-    # TODO: Implement prompt creation logic
-    return JSONResponse(content={"prompt_id": "new_prompt_id"})
+    try:
+        result: ObjectId = await prompt_service.create_prompt(prompt)
+        return JSONResponse(content={"prompt_id": str(result)})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotCreatedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
 
 @app.put("/prompt")
-async def update_prompt(promptId: str):
+async def update_prompt(promptId: str, prompt: Prompt):
     """
     프롬프트 수정 API
 
     Returns:
         Response: 수정된 프롬프트 정보
     """
-    # TODO: Implement prompt update logic
-    return JSONResponse(content={"prompt_id": "updated_prompt_id"})
+    try:
+        result: bool = await prompt_service.update_prompt(promptId, prompt)
+        return JSONResponse(content={"sucess": result})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoDataException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=422, content="No data to update.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found to update.")
 
 @app.get("/dialog/{project_id}")
 async def fetch_dialog(project_id: str, dialogId: str = Query(..., description="The ID of the dialog")):
