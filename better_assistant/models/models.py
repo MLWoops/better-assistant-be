@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -20,8 +20,8 @@ class Prompt(MongoDocument):
     created_at: Optional[datetime] = Field(description="프롬프트 생성 시각", default=datetime.now(KST_TIMEZONE))
     updated_at: Optional[datetime] = Field(description="프롬프트 수정 시각", default=datetime.now(KST_TIMEZONE))
 
-class Msg(MongoDocument):
-    msg: str = Field(..., description="메시지")
+class Msg(BaseModel):
+    content: str = Field(..., description="메시지")
     role: str = Field(..., description="역할")
 
 class Dialog(MongoDocument):
@@ -32,6 +32,6 @@ class Dialog(MongoDocument):
     updated_at: Optional[datetime] = Field(description="대화 수정 시각", default=datetime.now(KST_TIMEZONE))
 
 class GenerateRequest(BaseModel):
-    project_id: str = Field(..., description="프로젝트 ID")
-    prompt_id: str = Field(..., description="프롬프트 ID")
+    dialog_id: str = Field(..., description="대화 ID")
+    messages: list[Msg] = Field(..., description="메시지 리스트, 사용자 입력 포함")
     user_input: str = Field(..., description="사용자 입력")
