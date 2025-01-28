@@ -17,10 +17,10 @@ from better_assistant.exceptions import (
 
 class MongoClientWrapper:
     def __init__(self):
-        mongo_host = os.getenv("MONGO_MLWOOPS_HOST")
+        mongo_host = os.getenv("MONGO_HOST_NAME")
         mongo_user = os.getenv("MONGO_USER")
         mongo_pass = os.getenv("MONGO_PASS")
-        mongo_db = os.getenv("MONGO_BA_DB")
+        mongo_db = os.getenv("MONGO_DB_NAME")
 
         uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@{mongo_host}/?retryWrites=true&w=majority&appName=MLWoops"
 
