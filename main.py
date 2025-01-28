@@ -90,8 +90,7 @@ async def fetch_project(projectId: str):
         Response: {project_id}에 해당하는 프로젝트 정보
     """
     try:
-        result: dict = await project_service.get_project(projectId)
-        return JSONResponse({"project_detail": result})
+        project_result: dict = await project_service.get_project(projectId)
     except CollectionNotDefinedException as e:
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=500, content="Contect to administator.")
@@ -101,6 +100,19 @@ async def fetch_project(projectId: str):
     except DataNotFoundException as e:
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=404, content=f"No data found in requested project id: {projectId}.")
+
+    try:
+        prompt_result: list = await prompt_service.get_prompts(project_id=projectId)
+        project_result["prompts"] = prompt_result
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException as e:
+        project_result["prompts"] = []
+    return JSONResponse({"project_detail": project_result})
 
 
 @app.post("/project")
