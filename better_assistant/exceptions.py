@@ -7,11 +7,8 @@ class NoFilterException(Exception):
 class CollectionNotDefinedException(Exception):
     pass
 
-class DataNotDeletedException(Exception):
-    pass
-
 class DataNotCreatedException(Exception):
     pass
 
-class DataNotUpdatedException(Exception):
+class NoDataException(Exception):
     pass
