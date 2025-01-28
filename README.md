@@ -199,6 +199,15 @@ sequenceDiagram
     PM-->>API: Return prompt
     API-->>User: Response prompt
 
+    User->DB: 
+
+    User->>API: DELETE /prompt with prompt ID, project ID
+    API->>PM: Process request
+    PM->>DB: Delete item
+    DB-->>PM: Return status
+    PM-->>API: Return status
+    API-->>User: Response status
+
 ```
 
 #### Chat
