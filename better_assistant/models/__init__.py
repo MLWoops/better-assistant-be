@@ -4,4 +4,8 @@ from better_assistant.models.models import (
     Project,
     Prompt,
 )
-from better_assistant.models.mongo import MongoDocument, MongoFilter
+from better_assistant.models.mongo import (
+    MongoDocument,
+    MongoFilter,
+    MongoUpdate,
+)
