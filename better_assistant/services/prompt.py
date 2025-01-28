@@ -6,9 +6,10 @@ from bson import ObjectId
 from better_assistant.models import MongoFilter, MongoUpdate, Prompt
 from better_assistant.utils import MongoClientWrapper
 
+
 class PromptService:
-    def __init__(self):
-        self.mongo_client = MongoClientWrapper()
+    def __init__(self, mongo_client: MongoClientWrapper):
+        self.mongo_client = mongo_client
 
     async def get_prompts(self, project_id: str) -> List[Dict[str, any]]:
         filter_obj = (
@@ -26,10 +27,10 @@ class PromptService:
                 if isinstance(value, ObjectId):
                     data[key] = value.__str__()
         return result
-    
+
     async def create_prompt(self, prompt: Prompt) -> ObjectId:
         return await self.mongo_client.insert(prompt, "prompts")
-    
+
     async def update_prompt(self, prompt_id: str, prompt: Prompt) -> bool:
         filter_obj = (
             MongoFilter()
