@@ -1,6 +1,6 @@
 from datetime import timedelta, timezone
 
-from better_assistant.utils.mongo import MongoClientWrapper as MongoClientWrapper
+from better_assistant.utils.mongo import MongoClientWrapper
 
 
 def get_kst_timezone() -> timezone:
