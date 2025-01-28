@@ -15,26 +15,29 @@ from better_assistant.exceptions import (
     NoFilterException,
 )
 from better_assistant.models import Dialog, Project, Prompt
-from better_assistant.services import ChatService, ProjectService, PromptService
+from better_assistant.models.models import GenerateRequest
+from better_assistant.services import ChatService, GenerateService, ProjectService, PromptService
 from better_assistant.utils import MongoClientWrapper
 
 mongo_client: MongoClientWrapper = None
 project_service: ProjectService = None
 prompt_service: PromptService = None
 dialog_service: ChatService = None
+generate_service: GenerateService = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     서버 시작 시 초기화 작업을 위한 함수
     """
-    global project_service, prompt_service, dialog_service, mongo_client
+    global project_service, prompt_service, dialog_service, mongo_client, generate_service
     mongo_client = MongoClientWrapper()
     await mongo_client.__create_index__()
 
     project_service = ProjectService(mongo_client)
     prompt_service = PromptService(mongo_client)
     dialog_service = ChatService(mongo_client)
+    generate_service = GenerateService(dialog_service)
 
     logger.add("app.log", rotation="500 MB", format="{time} {level} {message}", level="DEBUG", enqueue=True)
 
@@ -367,15 +370,12 @@ async def delete_dialog(dialogId: str):
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=404, content="No data found to delete.")
 
-@app.post("/generate/{dialog_id}")
-async def generate_dialog(dialog_id: str, promptId: str = Query(..., description="The ID of the prompt")):
+@app.post("/generate")
+async def generate_dialog(gererate_request: GenerateRequest):
     """
     대화 생성 API
 
     Returns:
         Response: 생성된 대화 정보
     """
-    # TODO: Implement dialog generation logic
-    if not dialog_id or not promptId:
-        raise HTTPException(status_code=400, detail="Invalid dialog_id or promptId")
-    return StreamingResponse(content={"dialog_id": "new_dialog_id"})
+    return StreamingResponse(generate_service.generate(gererate_request))
