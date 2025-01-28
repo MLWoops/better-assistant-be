@@ -7,4 +7,4 @@ if os.getenv("ENV") == "TEST":
 elif os.getenv("ENV") == "PROD":
     pass
 else:  # in dev
-    load_dotenv(".env.dev")
+    load_dotenv(".env")
