@@ -163,8 +163,19 @@ async def delete_project(projectId: str):
     except DataNotFoundException:
         return Response(status_code=404, content="No data found to delete.")
 
+@app.get("/prompts")
+async def create_prompt():
+    """
+    프롬프트 목록 호출 API
+
+    Returns:
+        Response: 프롬프트 목록
+    """
+    # TODO: Implement prompt creation logic
+    return JSONResponse(content={"prompt_id": "new_prompt_id"})
+
 @app.post("/prompt")
-async def create_prompt(project_id: str):
+async def create_prompt():
     """
     프롬프트 생성 API
 
@@ -175,7 +186,7 @@ async def create_prompt(project_id: str):
     return JSONResponse(content={"prompt_id": "new_prompt_id"})
 
 @app.put("/prompt")
-async def update_prompt(project_id: str, prompt_id: str):
+async def update_prompt(promptId: str):
     """
     프롬프트 수정 API
 
