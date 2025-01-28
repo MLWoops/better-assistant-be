@@ -37,7 +37,7 @@ class MongoClientWrapper:
         try:
             await self.db.get_collection("projects").create_index("project_title", unique=True, background=True)
             await self.db.get_collection("prompts").create_index("prompt_version", unique=True, background=True)
-            await self.db.get_collection("dialogs").create_index("dialog_title", unique=True, background=True)
+            # await self.db.get_collection("dialogs").create_index("dialog_title", unique=True, background=True)
         except ServerSelectionTimeoutError:
             print("Failed to create indexes. Collection might not exist yet.")
 
