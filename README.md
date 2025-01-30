@@ -173,7 +173,16 @@ sequenceDiagram
     participant API as FastAPI Backend
     participant PM as Prompt Manager
     participant DB as DBMS
-    
+
+    User->>API: GET /prompts
+    API->>PM: Process request
+    PM->>DB: Query Item
+    DB-->>PM: Return prompts
+    PM-->>API: Return prompts
+    API-->>User: Response prompts
+
+    User->DB: 
+
     User->>API: POST /prompt with prompt ID
     API->>PM: Process request
     PM->>DB: Insert Item
@@ -189,6 +198,15 @@ sequenceDiagram
     DB-->>PM: Return Item
     PM-->>API: Return prompt
     API-->>User: Response prompt
+
+    User->DB: 
+
+    User->>API: DELETE /prompt with prompt ID, project ID
+    API->>PM: Process request
+    PM->>DB: Delete item
+    DB-->>PM: Return status
+    PM-->>API: Return status
+    API-->>User: Response status
 
 ```
 

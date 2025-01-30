@@ -8,8 +8,8 @@ from better_assistant.utils import MongoClientWrapper
 
 
 class ProjectService:
-    def __init__(self):
-        self.mongo_client = MongoClientWrapper()
+    def __init__(self, mongo_client: MongoClientWrapper):
+        self.mongo_client = mongo_client
 
     async def get_projects(self) -> List[Dict[str, any]]:
         filter_obj = (

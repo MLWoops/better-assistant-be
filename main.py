@@ -14,21 +14,27 @@ from better_assistant.exceptions import (
     NoDataException,
     NoFilterException,
 )
-from better_assistant.models import Project
-from better_assistant.services import ProjectService
+from better_assistant.models import Project, Prompt
+from better_assistant.services import ProjectService, PromptService
+from better_assistant.utils import MongoClientWrapper
 
+mongo_client: MongoClientWrapper = None
 project_service: ProjectService = None
+prompt_service: PromptService = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     서버 시작 시 초기화 작업을 위한 함수
     """
-    global project_service
-    project_service = ProjectService()
-    logger.add("app.log", rotation="500 MB", format="{time} {level} {message}", level="DEBUG", enqueue=True)
+    global project_service, prompt_service, mongo_client
+    mongo_client = MongoClientWrapper()
+    await mongo_client.__create_index__()
 
-    # await project_service.mongo_client.__create_index__()
+    project_service = ProjectService(mongo_client)
+    prompt_service = PromptService(mongo_client)
+
+    logger.add("app.log", rotation="500 MB", format="{time} {level} {message}", level="DEBUG", enqueue=True)
 
     yield
 
@@ -87,8 +93,7 @@ async def fetch_project(projectId: str):
         Response: {project_id}에 해당하는 프로젝트 정보
     """
     try:
-        result: dict = await project_service.get_project(projectId)
-        return JSONResponse({"project_detail": result})
+        project_result: dict = await project_service.get_project(projectId)
     except CollectionNotDefinedException as e:
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=500, content="Contect to administator.")
@@ -98,6 +103,19 @@ async def fetch_project(projectId: str):
     except DataNotFoundException as e:
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=404, content=f"No data found in requested project id: {projectId}.")
+
+    try:
+        prompt_result: list = await prompt_service.get_prompts(project_id=projectId)
+        project_result["prompts"] = prompt_result
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException:
+        project_result["prompts"] = []
+    return JSONResponse({"project_detail": project_result})
 
 
 @app.post("/project")
@@ -130,8 +148,8 @@ async def update_project(projectId: str, updated_project: Project):
         Response: 수정된 프로젝트 정보
     """
     try:
-        result: bool = await project_service.update_project(projectId, updated_project)
-        return JSONResponse({"sucess": result})
+        await project_service.update_project(projectId, updated_project)
+        return Response()
     except CollectionNotDefinedException as e:
         logger.error(f"An error occurred: {str(e)}")
         return Response(status_code=500, content="Contect to administator.")
@@ -154,8 +172,8 @@ async def delete_project(projectId: str):
         Response: 삭제된 프로젝트 정보
     """
     try:
-        result: bool = await project_service.delete_project(projectId)
-        return JSONResponse(content={"sucess": result})
+        await project_service.delete_project(projectId)
+        return Response()
     except CollectionNotDefinedException:
         return Response(status_code=500, content="Contect to administator.")
     except NoFilterException:
@@ -163,27 +181,89 @@ async def delete_project(projectId: str):
     except DataNotFoundException:
         return Response(status_code=404, content="No data found to delete.")
 
+@app.get("/prompts/{projectId}")
+async def create_prompt(projectId: str):
+    """
+    프롬프트 목록 호출 API
+
+    Returns:
+        Response: 프롬프트 목록
+    """
+    try:
+        result = await prompt_service.get_prompts(project_id=projectId)
+        return JSONResponse(content={"prompts": result})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found.")
+
 @app.post("/prompt")
-async def create_prompt(project_id: str):
+async def create_prompt(prompt: Prompt):
     """
     프롬프트 생성 API
 
     Returns:
         Response: 생성된 프롬프트 정보
     """
-    # TODO: Implement prompt creation logic
-    return JSONResponse(content={"prompt_id": "new_prompt_id"})
+    try:
+        result: ObjectId = await prompt_service.create_prompt(prompt)
+        return JSONResponse(content={"prompt_id": str(result)})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotCreatedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
 
 @app.put("/prompt")
-async def update_prompt(project_id: str, prompt_id: str):
+async def update_prompt(promptId: str, prompt: Prompt):
     """
     프롬프트 수정 API
 
     Returns:
         Response: 수정된 프롬프트 정보
     """
-    # TODO: Implement prompt update logic
-    return JSONResponse(content={"prompt_id": "updated_prompt_id"})
+    try:
+        await prompt_service.update_prompt(promptId, prompt)
+        return Response()
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoDataException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=422, content="No data to update.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found to update.")
+
+@app.delete("/prompt")
+async def delete_prompt(promptId: str):
+    """
+    프롬프트 삭제 API
+
+    Returns:
+        Response: 삭제된 프롬프트 정보
+    """
+    try:
+        await prompt_service.delete_prompt(promptId)
+        return Response()
+    except CollectionNotDefinedException:
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException:
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException:
+        return Response(status_code=404, content="No data found to delete.")
 
 @app.get("/dialog/{project_id}")
 async def fetch_dialog(project_id: str, dialogId: str = Query(..., description="The ID of the dialog")):
