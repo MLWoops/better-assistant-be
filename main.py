@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from contextlib import asynccontextmanager
 
@@ -14,25 +15,33 @@ from better_assistant.exceptions import (
     NoDataException,
     NoFilterException,
 )
-from better_assistant.models import Project, Prompt
-from better_assistant.services import ProjectService, PromptService
+from better_assistant.models import Dialog, Project, Prompt
+from better_assistant.models.models import GenerateRequest
+from better_assistant.services import ChatService, GenerateService, ProjectService, PromptService
 from better_assistant.utils import MongoClientWrapper
 
 mongo_client: MongoClientWrapper = None
 project_service: ProjectService = None
 prompt_service: PromptService = None
+dialog_service: ChatService = None
+generate_service: GenerateService = None
+
+generate_request_count: int = 0
+last_generate_request_time: datetime = datetime.now()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     서버 시작 시 초기화 작업을 위한 함수
     """
-    global project_service, prompt_service, mongo_client
+    global project_service, prompt_service, dialog_service, mongo_client, generate_service
     mongo_client = MongoClientWrapper()
     await mongo_client.__create_index__()
 
     project_service = ProjectService(mongo_client)
     prompt_service = PromptService(mongo_client)
+    dialog_service = ChatService(mongo_client)
+    generate_service = GenerateService(dialog_service)
 
     logger.add("app.log", rotation="500 MB", format="{time} {level} {message}", level="DEBUG", enqueue=True)
 
@@ -115,6 +124,18 @@ async def fetch_project(projectId: str):
         return Response(status_code=500, content="Contect to administator.")
     except DataNotFoundException:
         project_result["prompts"] = []
+
+    try:
+        dialog_result: list = await dialog_service.get_dialogs(project_id=projectId)
+        project_result["dialogs"] = dialog_result
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException:
+        project_result["dialogs"] = []
     return JSONResponse({"project_detail": project_result})
 
 
@@ -266,66 +287,114 @@ async def delete_prompt(promptId: str):
         return Response(status_code=404, content="No data found to delete.")
 
 @app.get("/dialog/{project_id}")
-async def fetch_dialog(project_id: str, dialogId: str = Query(..., description="The ID of the dialog")):
+async def fetch_dialog(project_id: str, dialogId: str):
     """
     대화 생성 API
 
     Returns:
         Response: 생성된 대화 정보
     """
-    # TODO: Implement dialog creation logic
-    if not project_id or not dialogId:
-        raise HTTPException(status_code=400, detail="Invalid project_id or dialogId")
-    return JSONResponse(content={"dialog_id": "new_dialog_id"})
+    try:
+        result = await dialog_service.get_dialog(project_id, dialogId)
+        return JSONResponse(content={"dialog": result})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found.")
 
-@app.post("/dialog/{project_id}")
-async def create_dialog(project_id: str):
+@app.post("/dialog")
+async def create_dialog(dialog: Dialog):
     """
     대화 생성 API
 
     Returns:
         Response: 생성된 대화 정보
     """
-    # TODO: Implement dialog creation logic
-    if not project_id:
-        raise HTTPException(status_code=400, detail="Invalid project_id")
-    return JSONResponse(content={"dialog_id": "new_dialog_id"})
+    try:
+        result = await dialog_service.create_dialog(dialog)
+        return JSONResponse(content={"dialog_id": str(result)})
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotCreatedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
 
-@app.put("/dialog/{project_id}")
-async def update_dialog(project_id: str, dialogId: str = Query(..., description="The ID of the dialog")):
+
+@app.put("/dialog")
+async def update_dialog(dialogId: str, dialog: Dialog):
     """
     대화 수정 API
 
     Returns:
         Response: 수정된 대화 정보
     """
-    # TODO: Implement dialog update logic
-    if not project_id or not dialogId:
-        raise HTTPException(status_code=400, detail="Invalid project_id or dialogId")
-    return JSONResponse(content={"dialog_id": "updated_dialog_id"})
+    try:
+        await dialog_service.update_dialog(dialogId, dialog)
+        return Response()
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoDataException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=422, content="No data to update.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found to update.")
 
-@app.delete("/dialog/{project_id}")
-async def delete_dialog(project_id: str, dialogId: str = Query(..., description="The ID of the dialog")):
+@app.delete("/dialog")
+async def delete_dialog(dialogId: str):
     """
     대화 삭제 API
 
     Returns:
         Response: 삭제된 대화 정보
     """
-    # TODO: Implement dialog deletion logic
-    if not project_id or not dialogId:
-        raise HTTPException(status_code=400, detail="Invalid project_id or dialogId")
-    return JSONResponse(content={"dialog_id": "deleted_dialog_id"})
+    try:
+        await dialog_service.delete_dialog(dialogId)
+        return Response()
+    except CollectionNotDefinedException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except NoFilterException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Contect to administator.")
+    except DataNotFoundException as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=404, content="No data found to delete.")
 
-@app.post("/generate/{dialog_id}")
-async def generate_dialog(dialog_id: str, promptId: str = Query(..., description="The ID of the prompt")):
+@app.post("/generate")
+async def generate_dialog(gererate_request: GenerateRequest):
     """
     대화 생성 API
 
     Returns:
         Response: 생성된 대화 정보
     """
-    # TODO: Implement dialog generation logic
-    if not dialog_id or not promptId:
-        raise HTTPException(status_code=400, detail="Invalid dialog_id or promptId")
-    return StreamingResponse(content={"dialog_id": "new_dialog_id"})
+    global generate_request_count, last_generate_request_time
+
+    if (datetime.now() - last_generate_request_time).seconds > 60:
+        generate_request_count = 0
+        last_generate_request_time = datetime.now()
+
+    if generate_request_count > 10:
+        return Response(status_code=429, content="Too Many Requests")
+    
+    generate_request_count += 1
+
+    try:
+        return StreamingResponse(generate_service.generate(gererate_request))
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Too Many Requests")

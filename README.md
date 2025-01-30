@@ -23,7 +23,7 @@ Better-Assistant의 백엔드 시스템은 프로젝트별로 다양한 Prompt�
 - **프레임워크:** FastAPI (Python 3.11)
 - **웹 서버:** Uvicorn
 - **데이터베이스:** MongoDB
-- **AI API:** DeepSeek API
+- **AI API:** DeepSeek API (현재 gemini로 구현, 2025.01.28, 00:54 기준 DeepSeek 운영 불가)
 - **배포 도구:** Docker, Kubernetes (NCP)
 - **패키지 매니저:** uv
 ---
@@ -33,7 +33,7 @@ Better-Assistant의 백엔드 시스템은 프로젝트별로 다양한 Prompt�
 ### 1. 환경 설정
 프로젝트 실행 전 `.env` 파일에 다음 환경 변수를 설정하세요:
 ```
-API_KEY=<DeepSeek API Key>
+.env.example 파일을 확인하세요.
 ```
 
 ### 2. 로컬 실행

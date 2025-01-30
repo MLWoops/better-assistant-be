@@ -17,10 +17,10 @@ from better_assistant.exceptions import (
 
 class MongoClientWrapper:
     def __init__(self):
-        mongo_host = os.getenv("MONGO_MLWOOPS_HOST")
+        mongo_host = os.getenv("MONGO_HOST_NAME")
         mongo_user = os.getenv("MONGO_USER")
         mongo_pass = os.getenv("MONGO_PASS")
-        mongo_db = os.getenv("MONGO_BA_DB")
+        mongo_db = os.getenv("MONGO_DB_NAME")
 
         uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@{mongo_host}/?retryWrites=true&w=majority&appName=MLWoops"
 
@@ -36,8 +36,8 @@ class MongoClientWrapper:
         print("Creating indexes...")
         try:
             await self.db.get_collection("projects").create_index("project_title", unique=True, background=True)
-            await self.db.get_collection("prompts").create_index("prompt_version", unique=True, background=True)
-            # await self.db.get_collection("dialogs").create_index("dialog_title", unique=True, background=True)
+            await self.db.get_collection("prompts").create_index("prompt_version", background=True)
+            await self.db.get_collection("dialogs").create_index("dialog_title", background=True)
         except ServerSelectionTimeoutError:
             print("Failed to create indexes. Collection might not exist yet.")
 

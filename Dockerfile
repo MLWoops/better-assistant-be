@@ -9,17 +9,19 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+RUN pip3 install uv --no-cache-dir
 
 # Copy pyproject.toml and uv.lock for dependency installation
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies in a virtual environment
-RUN uv install
+RUN python3 -m uv sync
 
 
 # Runtime image
-FROM python:3.11-alpine-bookworm
+FROM python:3.11-slim-bookworm
 
 # Set working directory
 WORKDIR /app
@@ -34,4 +36,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY . .
 
 # Entrypoint
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0"]

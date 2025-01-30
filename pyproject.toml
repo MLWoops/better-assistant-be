@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.115.6",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
+    "openai>=1.60.2",
     "pymongo>=4.10.1",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",

@@ -92,6 +92,12 @@ class MongoUpdate:
         self.update["$push"][field] = value
         return self
 
+    def push_all(self, field: str, values: list) -> "MongoUpdate":
+        if "$push" not in self.update:
+            self.update["$push"] = {}
+        self.update["$push"][field] = {"$each" : values}
+        return self
+
     def add_to_set(self, field: str, value: Any) -> "MongoUpdate":
         if "$addToSet" not in self.update:
             self.update["$addToSet"] = {}

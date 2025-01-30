@@ -44,7 +44,7 @@ class PromptService:
             .build()
         )
         return await self.mongo_client.update(filter_obj, update_obj, collection_name="prompts")
-    
+
     async def delete_prompt(self, prompt_id: str) -> bool:
         filter_obj = (
             MongoFilter()
