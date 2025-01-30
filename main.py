@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from contextlib import asynccontextmanager
 
@@ -24,6 +25,9 @@ project_service: ProjectService = None
 prompt_service: PromptService = None
 dialog_service: ChatService = None
 generate_service: GenerateService = None
+
+generate_request_count: int = 0
+last_generate_request_time: datetime = datetime.now()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -378,4 +382,14 @@ async def generate_dialog(gererate_request: GenerateRequest):
     Returns:
         Response: 생성된 대화 정보
     """
+    global generate_request_count, last_generate_request_time
+
+    if (datetime.now() - last_generate_request_time).seconds > 60:
+        generate_request_count = 0
+        last_generate_request_time = datetime.now()
+
+    if generate_request_count > 10:
+        return Response(status_code=429, content="Too Many Requests")
+    
+    generate_request_count += 1
     return StreamingResponse(generate_service.generate(gererate_request))
