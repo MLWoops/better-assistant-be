@@ -392,4 +392,9 @@ async def generate_dialog(gererate_request: GenerateRequest):
         return Response(status_code=429, content="Too Many Requests")
     
     generate_request_count += 1
-    return StreamingResponse(generate_service.generate(gererate_request))
+
+    try:
+        return StreamingResponse(generate_service.generate(gererate_request))
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        return Response(status_code=500, content="Too Many Requests")
